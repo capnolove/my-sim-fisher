@@ -6,7 +6,7 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col p-5 bg-[#620089]">
-      <div className="flex h-10 shrink-0 items-end rounded-lg bg-[#D8AAEA] px-15 py-5 md:h-20 font-sans font-semibold text-[20px] text-black antialiased">
+      <div className="flex h-10 shrink-0 items-end justify-between rounded-lg bg-[#D8AAEA] px-14 py-5 mb-4 md:h-20 font-sans font-semibold text-[20px] text-black antialiased">
         <p>MySimFisher</p>
         <div className="ml-2 p-0">
           <Image src="/logo.png" alt="Logo" width={34} height={34} className="rounded-sm" />
@@ -24,7 +24,7 @@ export default function Home() {
         <div className="flex flex-col w-1/3 h-[70vh] shrink-0 items-center justify-center rounded-lg bg-[#D8AAEA] px-6 py-6 font-sans font-semibold text-black">
           <p className="m-0 justify-center p-4 text-left text-[36px] text-[#583535]">Start building your “last line of defense” today</p>
           <p className="m-0 justify-center p-4 text-left text-[24px] text-[#583535]">Launching hyper-realistic phishing campaigns to form your “last line of defense”. Get started to begin a new security training program for your corporation</p>
-            <button className="mt-12 px-6 py-3 text-lg font-instrument-sans text-[18px] font-semibold text-black rounded-md bg-white hover:bg-[#C8C8C8] min-w-[240px]">
+            <button className="mt-12 px-6 py-3 text-lg font-sans text-[18px] font-semibold text-black rounded-md bg-white hover:bg-[#C8C8C8] min-w-[240px]">
               <Link href="/signup">Get started now</Link>
             </button>
         </div>
