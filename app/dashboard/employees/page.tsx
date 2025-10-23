@@ -52,6 +52,14 @@ export default function EmployeesPage() {
     }
   };
 
+  const formatDate = (date: Date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   // Add single employee
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +73,7 @@ export default function EmployeesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          userId: user.id, // ADD THIS
+          userId: user.id,
         }),
       });
 
@@ -116,7 +124,7 @@ export default function EmployeesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employees,
-          userId: user.id, // ADD THIS
+          userId: user.id,
         }),
       });
 
@@ -280,7 +288,7 @@ export default function EmployeesPage() {
                     <td className="py-3 px-4 text-black">{employee.name}</td>
                     <td className="py-3 px-4 text-black">{employee.email}</td>
                     <td className="py-3 px-4 text-black/70 text-sm">
-                      {new Date(employee.createdAt).toLocaleDateString()}
+                      {formatDate(employee.createdAt)}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <button

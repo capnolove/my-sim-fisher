@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 // GET all employees for logged-in user
 export async function GET(request: Request) {
   try {
-    // For now, get user from request (you'll improve auth later)
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
 
@@ -51,40 +50,6 @@ export async function POST(request: Request) {
     console.error("Add employee error:", error);
     return NextResponse.json(
       { error: "Failed to add employee" },
-      { status: 500 }
-    );
-  }
-}
-
-// POST bulk employees
-export async function POST(request: Request) {
-  try {
-    const { employees, userId } = await request.json();
-
-    if (!employees || !Array.isArray(employees)) {
-      return NextResponse.json(
-        { error: "Invalid employee data" },
-        { status: 400 }
-      );
-    }
-
-    const created = await prisma.employee.createMany({
-      data: employees.map((emp: any) => ({
-        name: emp.name,
-        email: emp.email,
-        adminId: userId,
-      })),
-      skipDuplicates: true,
-    });
-
-    return NextResponse.json(
-      { message: `Imported ${created.count} employees`, count: created.count },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Bulk import error:", error);
-    return NextResponse.json(
-      { error: "Failed to import employees" },
       { status: 500 }
     );
   }

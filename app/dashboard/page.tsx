@@ -5,13 +5,31 @@ import Link from "next/link";
 
 export default function Dashboard() {
     const [user, setUser] = useState<any>(null);
+    const [employeeCount, setEmployeeCount] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const userData = localStorage.getItem("user");
         if (userData) {
-            setUser(JSON.parse(userData));
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+            fetchEmployeeCount(parsedUser.id);
         }
     }, []);
+
+    const fetchEmployeeCount = async (userId: string) => {
+        try {
+            const response = await fetch(`/api/employees?userId=${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setEmployeeCount(data.employees?.length || 0);
+            }
+        } catch (error) {
+            console.error("Failed to fetch employee count:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (!user) return null;
 
@@ -104,7 +122,11 @@ export default function Dashboard() {
                         <p className="text-sm text-gray-600">Active Campaigns</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl text-center">
-                        <p className="text-4xl font-bold text-[#620089] mb-2">0</p>
+                        {loading ? (
+                            <p className="text-4xl font-bold text-[#620089] mb-2">...</p>
+                        ) : (
+                            <p className="text-4xl font-bold text-[#620089] mb-2">{employeeCount}</p>
+                        )}
                         <p className="text-sm text-gray-600">Total Employees</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl text-center">

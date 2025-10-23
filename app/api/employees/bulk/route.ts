@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+// POST bulk employees
 export async function POST(request: Request) {
   try {
     const { employees, userId } = await request.json();

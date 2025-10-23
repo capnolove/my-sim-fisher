@@ -12,10 +12,10 @@ export default function Home() {
           <Image src="/logo.png" alt="Logo" width={34} height={34} className="rounded-sm" />
         </div>
         <div className="flex items-center gap-10 ml-auto">
-          <button className="px-3 py-1 text-sm font-sans text-[20px] text-black rounded-md font-semibold bg-white hover:bg-[#C8C8C8]">
+          <button className="px-3 py-1 text-sm font-sans text-[18px] text-black rounded-md font-semibold bg-white hover:bg-[#C8C8C8]">
             <Link href="/signup">Sign Up</Link>
           </button>
-          <button className="px-3 py-1 text-sm font-sans text-[20px] text-black rounded-md font-semibold bg-white hover:bg-[#C8C8C8]">
+          <button className="px-3 py-1 text-sm font-sans text-[18px] text-black rounded-md font-semibold bg-white hover:bg-[#C8C8C8]">
             <Link href="/login">Login</Link>
           </button>
         </div>
