@@ -7,8 +7,15 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
 
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
     const employees = await prisma.employee.findMany({
-      where: { adminId: userId || "" },
+      where: { adminId: userId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -25,19 +32,21 @@ export async function GET(request: Request) {
 // POST single employee
 export async function POST(request: Request) {
   try {
-    const { name, email, userId } = await request.json();
+    const { firstName, lastName, email, department, userId } = await request.json();
 
-    if (!name || !email) {
+    if (!firstName || !lastName || !email || !userId) {
       return NextResponse.json(
-        { error: "Name and email are required" },
+        { error: "First name, last name, email, and user ID are required" },
         { status: 400 }
       );
     }
 
     const employee = await prisma.employee.create({
       data: {
-        name,
+        firstName,
+        lastName,
         email,
+        department: department || null,
         adminId: userId,
       },
     });
@@ -46,10 +55,10 @@ export async function POST(request: Request) {
       { message: "Employee added", employee },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Add employee error:", error);
     return NextResponse.json(
-      { error: "Failed to add employee" },
+      { error: error.message || "Failed to add employee" },
       { status: 500 }
     );
   }

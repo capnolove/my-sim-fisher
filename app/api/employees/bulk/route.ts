@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// POST bulk employees
 export async function POST(request: Request) {
   try {
-    const { employees, userId } = await request.json();
+    const body = await request.json();
+    const { employees, userId } = body;
+
+    console.log("Bulk import request:", { userId, employeeCount: employees?.length });
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
 
     if (!employees || !Array.isArray(employees)) {
       return NextResponse.json(
@@ -13,23 +22,44 @@ export async function POST(request: Request) {
       );
     }
 
+    if (employees.length === 0) {
+      return NextResponse.json(
+        { error: "No employees provided" },
+        { status: 400 }
+      );
+    }
+
+    // Validate each employee
+    for (const emp of employees) {
+      if (!emp.firstName || !emp.lastName || !emp.email) {
+        return NextResponse.json(
+          { error: "Each employee must have firstName, lastName, and email" },
+          { status: 400 }
+        );
+      }
+    }
+
     const created = await prisma.employee.createMany({
       data: employees.map((emp: any) => ({
-        name: emp.name,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
         email: emp.email,
+        department: emp.department || null,
         adminId: userId,
       })),
       skipDuplicates: true,
     });
 
+    console.log("Bulk import success:", created.count);
+
     return NextResponse.json(
       { message: `Imported ${created.count} employees`, count: created.count },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Bulk import error:", error);
     return NextResponse.json(
-      { error: "Failed to import employees" },
+      { error: error.message || "Failed to import employees" },
       { status: 500 }
     );
   }

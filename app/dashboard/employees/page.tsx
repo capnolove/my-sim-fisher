@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 
 interface Employee {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
+  department?: string;
   createdAt: Date;
 }
 
@@ -19,7 +21,12 @@ export default function EmployeesPage() {
   const router = useRouter();
 
   // Single employee form
-  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    department: "",
+  });
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -52,10 +59,11 @@ export default function EmployeesPage() {
     }
   };
 
+  // Format date to DD/MM/YYYY
   const formatDate = (date: Date) => {
     const d = new Date(date);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
     const year = d.getFullYear();
     return `${day}/${month}/${year}`;
   };
@@ -84,7 +92,7 @@ export default function EmployeesPage() {
       }
 
       setSuccess("Employee added successfully!");
-      setFormData({ name: "", email: "" });
+      setFormData({ firstName: "", lastName: "", email: "", department: "" });
       fetchEmployees();
     } catch (err: any) {
       setError(err.message);
@@ -93,7 +101,6 @@ export default function EmployeesPage() {
     }
   };
 
-  // CSV upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -104,19 +111,44 @@ export default function EmployeesPage() {
 
     try {
       const text = await file.text();
+      console.log("CSV content:", text);
+
       const lines = text.split("\n").filter((line) => line.trim());
+      console.log("Total lines:", lines.length);
+
+      if (lines.length < 2) {
+        throw new Error("CSV file must have a header and at least one employee");
+      }
+
       const employees = [];
 
-      // Skip header row, parse CSV
+      // Skip header (index 0), start from index 1
       for (let i = 1; i < lines.length; i++) {
-        const [name, email] = lines[i].split(",").map((s) => s.trim());
-        if (name && email) {
-          employees.push({ name, email });
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Split by comma, handle quoted fields
+        const parts = line.split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
+        console.log(`Line ${i}:`, parts);
+
+        const [firstName, lastName, email, department] = parts;
+
+        if (firstName && lastName && email) {
+          employees.push({
+            firstName,
+            lastName,
+            email,
+            department: department || "",
+          });
+        } else {
+          console.warn(`Skipping invalid line ${i}:`, parts);
         }
       }
 
+      console.log("Parsed employees:", employees);
+
       if (employees.length === 0) {
-        throw new Error("No valid employees found in CSV");
+        throw new Error("No valid employees found in CSV. Expected format: firstName,lastName,email,department");
       }
 
       const response = await fetch("/api/employees/bulk", {
@@ -129,6 +161,7 @@ export default function EmployeesPage() {
       });
 
       const data = await response.json();
+      console.log("Bulk import response:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to import employees");
@@ -136,15 +169,15 @@ export default function EmployeesPage() {
 
       setSuccess(`Successfully imported ${employees.length} employees!`);
       fetchEmployees();
-      e.target.value = ""; // Reset file input
+      e.target.value = "";
     } catch (err: any) {
+      console.error("CSV import error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete employee
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this employee?")) return;
 
@@ -199,13 +232,27 @@ export default function EmployeesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-black mb-1">
-                Name
+                First Name
               </label>
               <input
                 type="text"
-                value={formData.name}
+                value={formData.firstName}
                 onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#620089]"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-black mb-1">
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#620089]"
                 required
@@ -225,6 +272,19 @@ export default function EmployeesPage() {
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-semibold text-black mb-1">
+                Department (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) =>
+                  setFormData({ ...formData, department: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#620089]"
+              />
+            </div>
           </div>
           <button
             type="submit"
@@ -242,8 +302,16 @@ export default function EmployeesPage() {
           Import from CSV
         </h2>
         <p className="text-black/70 mb-4 text-sm">
-          Upload a CSV file with columns: <strong>name, email</strong>
+          Upload a CSV file with columns: <strong>firstName,lastName,email,department</strong>
         </p>
+        <div className="bg-white border border-gray-300 rounded-lg p-4 mb-4">
+          <p className="text-sm font-semibold text-black mb-2">Example CSV format:</p>
+          <pre className="text-xs text-black/70 bg-gray-50 p-2 rounded">
+{`firstName,lastName,email,department
+John,Doe,john@example.com,IT
+Jane,Smith,jane@example.com,HR`}
+          </pre>
+        </div>
         <input
           type="file"
           accept=".csv"
@@ -272,6 +340,9 @@ export default function EmployeesPage() {
                     Email
                   </th>
                   <th className="text-left py-3 px-4 text-black font-semibold">
+                    Department
+                  </th>
+                  <th className="text-left py-3 px-4 text-black font-semibold">
                     Added
                   </th>
                   <th className="text-right py-3 px-4 text-black font-semibold">
@@ -285,8 +356,13 @@ export default function EmployeesPage() {
                     key={employee.id}
                     className="border-b border-black/5 hover:bg-white/50"
                   >
-                    <td className="py-3 px-4 text-black">{employee.name}</td>
+                    <td className="py-3 px-4 text-black">
+                      {employee.firstName} {employee.lastName}
+                    </td>
                     <td className="py-3 px-4 text-black">{employee.email}</td>
+                    <td className="py-3 px-4 text-black/70">
+                      {employee.department || "-"}
+                    </td>
                     <td className="py-3 px-4 text-black/70 text-sm">
                       {formatDate(employee.createdAt)}
                     </td>

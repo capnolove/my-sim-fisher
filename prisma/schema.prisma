@@ -18,13 +18,30 @@ model User {
 }
 
 model Employee {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  adminId   String
-  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  firstName  String
+  lastName   String
+  email      String
+  department String?
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([adminId])
+}
+
+model PhishingLog {
+  id          String   @id @default(cuid())
+  campaignId  String
+  employeeId  String
+  platform    String   // "microsoft", "google", "paypal"
+  action      String   // "clicked", "submitted"
+  timestamp   DateTime
+  data        Json?    // Add this to store additional metadata
+  createdAt   DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([employeeId])
+  @@index([action])
 }
