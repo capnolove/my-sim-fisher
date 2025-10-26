@@ -84,6 +84,10 @@ export default function Page() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
   const sp = useSearchParams();
   const userId = sp.get("userId") || ""; // pass ?userId=... in the URL
 
@@ -278,13 +282,50 @@ export default function Page() {
     return unique.size === 1 && unique.has("Unknown");
   }, [employees]);
 
+  // Keep just this export function
+  const exportToCSV = () => {
+    const headers = ['Department,Total,Clicked,Submitted,Click Rate (%),Submission Rate (%),Repeat Offender Rate (%)\n'];
+    const rows = chartDataRates.map(row => 
+      `${row.department},${row._sent},${row._clickedPairs},${row._submittedPairs},${row['Click Rate']},${row['Submission Rate']},${row['Repeat Offender Rate']}\n`
+    );
+    
+    const csvContent = 'data:text/csv;charset=utf-8,'
+      + 'MySimFisher Analytics Report\n'
+      + `Generated at: ${new Date().toLocaleString()}\n`
+      + `Date Range: ${dateRange.startDate || 'All time'} to ${dateRange.endDate || 'Present'}\n\n`
+      + headers.join('')
+      + rows.join('');
+
+    const link = document.createElement('a');
+    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('download', `mysimfisher-analytics-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Update the button in your JSX to use the new function
   if (loading) return <div className="text-black/70">Loading analytics...</div>;
   if (err) return <div className="text-red-600">Error: {err}</div>;
 
   return (
     <div className="space-y-6">
-      {/* Themed header card */}
-      <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
+      {/* Print-only header */}
+      <div className="hidden print:block print-header">
+        <h1 className="text-2xl font-bold">MySimFisher Analytics Report</h1>
+        <div className="print-date">
+          Generated on: {new Date().toLocaleDateString()}
+          {dateRange.startDate && dateRange.endDate && (
+            <div>
+              Date Range: {new Date(dateRange.startDate).toLocaleDateString()} 
+              - {new Date(dateRange.endDate).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Add print:hidden to elements that shouldn't print */}
+      <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6 print:hidden">
         <h1 className="text-2xl font-bold text-black">Analytics</h1>
         <p className="text-sm text-black/70">Click Rate, Submission Rate, and Repeat Offender Rate by department</p>
       </div>
@@ -300,10 +341,44 @@ export default function Page() {
         </div>
       )}
 
+      {/* Date range and export buttons section */}
+      <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-black mb-1">Start Date</label>
+              <input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-black mb-1">End Date</label>
+              <input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={exportToCSV}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              <span>📊</span> Export CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Three metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Click Rate */}
-        <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
+        <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6 chart-container">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-black text-lg">🖱️</span>
@@ -328,7 +403,7 @@ export default function Page() {
         </div>
 
         {/* Submission Rate */}
-        <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
+        <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6 chart-container">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-black text-lg">⚠️</span>
@@ -353,7 +428,7 @@ export default function Page() {
         </div>
 
         {/* Repeat Offender Rate */}
-        <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
+        <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6 chart-container">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-black text-lg">🔁</span>
