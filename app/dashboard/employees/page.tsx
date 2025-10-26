@@ -9,7 +9,7 @@ interface Employee {
   lastName: string;
   email: string;
   department?: string;
-  createdAt: Date;
+  createdAt: string; // Change from Date to string since API returns string
 }
 
 export default function EmployeesPage() {
@@ -60,12 +60,18 @@ export default function EmployeesPage() {
   };
 
   // Format date to DD/MM/YYYY
-  const formatDate = (date: Date) => {
-    const d = new Date(date);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'N/A';
+      
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      return 'N/A';
+    }
   };
 
   // Add single employee

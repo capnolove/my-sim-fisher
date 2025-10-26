@@ -22,6 +22,7 @@ export async function GET(request: Request) {
         lastName: true,
         email: true,
         department: true,
+        createdAt: true, // Add this line to include createdAt
       },
       orderBy: [{ department: "asc" }, { lastName: "asc" }],
     });
