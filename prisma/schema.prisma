@@ -32,16 +32,15 @@ model Employee {
 }
 
 model PhishingLog {
-  id          String   @id @default(cuid())
-  campaignId  String
-  employeeId  String
-  platform    String   // "microsoft", "google", "paypal"
-  action      String   // "clicked", "submitted"
-  timestamp   DateTime
-  data        Json?    // Add this to store additional metadata
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  campaignId String
+  employeeId String
+  platform   String
+  action     String   // "sent" | "clicked" | "submitted"
+  timestamp  DateTime @default(now())
+  data       Json?
+  createdAt  DateTime @default(now())
 
   @@index([campaignId])
   @@index([employeeId])
-  @@index([action])
 }

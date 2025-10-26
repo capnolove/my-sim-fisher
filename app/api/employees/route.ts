@@ -16,10 +16,17 @@ export async function GET(request: Request) {
 
     const employees = await prisma.employee.findMany({
       where: { adminId: userId },
-      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        department: true,
+      },
+      orderBy: [{ department: "asc" }, { lastName: "asc" }],
     });
 
-    return NextResponse.json({ employees }, { status: 200 });
+    return NextResponse.json({ employees });
   } catch (error) {
     console.error("Fetch employees error:", error);
     return NextResponse.json(

@@ -15,6 +15,14 @@ type EditorState = Omit<CampaignTemplate, "id" | "createdAt" | "updatedAt"> & {
 
 const STORAGE_KEY = "msf.templates.v1";
 
+function generateUUID(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = ((Math.random() * 16) | 0),
+      v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -124,14 +132,22 @@ export default function TemplatesPage() {
 
   function saveTemplate(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!form.name.trim() || !form.subject.trim() || !form.body.trim()) {
+      alert("❌ Name, subject, and body are required.");
+      return;
+    }
+
     const now = new Date().toISOString();
+    const newId = form.id || generateUUID(); // Changed from crypto.randomUUID()
+
     const data: CampaignTemplate = {
-      id: form.id ?? crypto.randomUUID(),
+      id: newId,
       name: form.name.trim(),
       category: form.category as CampaignTemplate["category"],
       description: form.description?.trim(),
-      subject: form.subject,
-      body: form.body,
+      subject: form.subject.trim(),
+      body: form.body.trim(),
       variables: derivedVars,
       tags: form.tags ?? [],
       isActive: form.isActive ?? true,
@@ -139,13 +155,8 @@ export default function TemplatesPage() {
       createdAt: editing?.createdAt ?? now,
     };
 
-    if (!data.name || !data.subject || !data.body) {
-      alert("Name, subject, and body are required.");
-      return;
-    }
-
     setTemplates((prev) => {
-      const idx = prev.findIndex((t) => t.id === data.id);
+      const idx = prev.findIndex((t) => t.id === newId);
       if (idx >= 0) {
         const copy = [...prev];
         copy[idx] = data;
@@ -153,8 +164,9 @@ export default function TemplatesPage() {
       }
       return [data, ...prev];
     });
-    setEditingId(data.id);
-    alert("✅ Template saved successfully!");
+
+    setEditingId(newId);
+    alert(`✅ Template "${data.name}" saved successfully!`);
   }
 
   function deleteTemplate(id: string) {
@@ -359,7 +371,7 @@ export default function TemplatesPage() {
                   Detected Variables
                 </label>
                 <div className="flex flex-wrap gap-2">
-                    {derivedVars.length === 0 ? (
+                  {derivedVars.length === 0 ? (
                     <span className="text-sm text-black/60">
                       No variables detected
                     </span>
@@ -373,8 +385,8 @@ export default function TemplatesPage() {
                       </span>
                     ))
                   )
-                  }   
-                  </div>
+                }
+                </div>
               </div>
             </div>
 
@@ -426,41 +438,59 @@ export default function TemplatesPage() {
         </div>
         <div className="space-y-2">
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{companyName}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{companyName}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Your company name</p>
           </div>
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{firstName}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{firstName}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Employee's first name</p>
           </div>
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{lastName}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{lastName}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Employee's last name</p>
           </div>
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{email}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{email}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Employee's email address</p>
           </div>
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{dueDate}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{dueDate}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Campaign due date (DD/MM/YYYY)</p>
           </div>
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{policyName}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{policyName}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Policy or document name</p>
           </div>
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{windowStart}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{windowStart}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Window start date</p>
           </div>
           <div className="p-3 bg-white rounded-lg border border-gray-300">
-            <code className="text-sm font-mono text-blue-600">{'{{windowEnd}}'}</code>
+            <code className="text-sm font-mono text-blue-600">
+              {"{{windowEnd}}"}
+            </code>
             <p className="text-xs text-gray-600 mt-1">Window end date</p>
           </div>
-          
-          {/* ADD THIS - Phishing Link Variable */}
+
+          {/* Phishing Link Variable */}
           <div className="p-3 bg-yellow-50 rounded-lg border-2 border-yellow-400">
-            <code className="text-sm font-mono text-blue-600 font-bold">{'{{LINK}}'}</code>
+            <code className="text-sm font-mono text-blue-600 font-bold">
+              {"{{LINK}}"}
+            </code>
             <p className="text-xs text-yellow-800 mt-1 font-semibold">
               ⚠️ Phishing link - Will be replaced with a clickable tracking link
             </p>
@@ -475,15 +505,21 @@ export default function TemplatesPage() {
                 "Please {'{{LINK}}'} to verify your account."
               </p>
               <p className="text-xs text-gray-600 mt-1 italic">
-                Will become: "Please <span className="text-blue-600 underline">Click here to verify your account</span> to verify your account."
+                Will become: "Please{" "}
+                <span className="text-blue-600 underline">
+                  Click here to verify your account
+                </span>{" "}
+                to verify your account."
               </p>
             </div>
           </div>
         </div>
 
-        {/* Add Example Section */}
+        {/* Example Section */}
         <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm font-semibold text-blue-900 mb-2">💡 Template Example:</p>
+          <p className="text-sm font-semibold text-blue-900 mb-2">
+            💡 Template Example:
+          </p>
           <div className="bg-white p-3 rounded border border-blue-300 text-xs space-y-2">
             <p className="font-mono text-gray-800">
               Dear {'{{firstName}}'} {'{{lastName}},'}
@@ -495,7 +531,7 @@ export default function TemplatesPage() {
               Please {'{{LINK}}'} before {'{{dueDate}}'} to secure your account.
             </p>
             <p className="font-mono text-gray-800 mt-3">
-              Best regards,<br/>
+              Best regards,<br />
               IT Security Team
             </p>
           </div>

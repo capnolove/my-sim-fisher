@@ -95,7 +95,7 @@ export default function LogsPage() {
   // Calculate statistics
   const stats = {
     totalClicks: logs.filter((l) => l.action === "clicked").length,
-    totalSubmissions: logs.filter((l) => l.action === "submitted").length,
+    totalSubmissions: logs.filter((l) => l.action === "submitted").length, // only count real submissions
     uniqueEmployees: new Set(logs.map((l) => l.employeeId)).size,
     campaignCount: campaigns.length,
   };
@@ -156,29 +156,40 @@ export default function LogsPage() {
 
       {/* Platform Statistics */}
       <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-black mb-4">Platform Breakdown</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
-            <div className="flex items-center gap-3 mb-2">
-              <img src="/google.png" alt="Google" className="h-6" />
-              <span className="font-semibold text-gray-900">Google</span>
-            </div>
-            <div className="text-2xl font-bold text-blue-600">{platformStats.google}</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
-            <div className="flex items-center gap-3 mb-2">
-              <img src="/microsoft.png" alt="Microsoft" className="h-6" />
-              <span className="font-semibold text-gray-900">Microsoft</span>
-            </div>
-            <div className="text-2xl font-bold text-blue-600">{platformStats.microsoft}</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
-            <div className="flex items-center gap-3 mb-2">
-              <img src="/paypal.png" alt="PayPal" className="h-6" />
-              <span className="font-semibold text-gray-900">PayPal</span>
-            </div>
-            <div className="text-2xl font-bold text-blue-600">{platformStats.paypal}</div>
-          </div>
+        <div className="font-semibold text-black mb-4">📊 Platform Breakdown</div>
+        <div className="space-y-3">
+          {["google", "microsoft", "paypal", "hsbc", "citibank"].map((platform) => {
+            const platformLogs = filteredLogs.filter((log) => log.platform === platform);
+            const clicks = platformLogs.filter((log) => log.action === "clicked").length;
+            const submissions = platformLogs.filter((log) => log.action === "submitted").length;
+            const sent = platformLogs.filter((log) => log.action === "sent").length;
+            const total = platformLogs.length;
+
+            if (total === 0) return null;
+
+            return (
+              <div key={platform} className="bg-white rounded-lg p-3 border border-black/10">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <img src={`/${platform}.png`} alt={platform} className="h-5" />
+                    <span className="font-medium text-black capitalize">{platform}</span>
+                  </div>
+                  <span className="text-sm text-black/60">{total} total</span>
+                </div>
+                <div className="flex gap-2 text-xs">
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    🖱️ {clicks} clicks
+                  </span>
+                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                    ⚠️ {submissions} submissions
+                  </span>
+                  <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                    📨 {sent} sent
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -199,6 +210,8 @@ export default function LogsPage() {
               <option value="google">Google</option>
               <option value="microsoft">Microsoft</option>
               <option value="paypal">PayPal</option>
+              <option value="hsbc">HSBC</option>
+              <option value="citibank">Citibank</option>
             </select>
           </div>
           <div>
@@ -213,6 +226,7 @@ export default function LogsPage() {
               <option value="all">All Actions</option>
               <option value="clicked">Clicked Link</option>
               <option value="submitted">Submitted Credentials</option>
+              <option value="sent">Sent</option>
             </select>
           </div>
           <div>
@@ -318,11 +332,15 @@ export default function LogsPage() {
                         <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
                           🖱️ Clicked
                         </span>
-                      ) : (
+                      ) : log.action === "submitted" ? (
                         <span className="inline-block bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
                           ⚠️ Submitted
                         </span>
-                      )}
+                      ) : log.action === "sent" ? (
+                        <span className="inline-block bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">
+                          📨 Sent
+                        </span>
+                      ) : null}
                     </td>
                     <td className="py-3 px-4 text-xs text-black/60 font-mono">
                       {log.campaignId.substring(0, 20)}...

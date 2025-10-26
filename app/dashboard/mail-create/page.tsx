@@ -27,12 +27,13 @@ export default function Page() {
   const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false); // Add this state
   const router = useRouter();
 
   // Add phishing platform state
   const [phishingPlatform, setPhishingPlatform] = useState<string>("google");
   const [generatedLinks, setGeneratedLinks] = useState<any[]>([]);
-  const [linkText, setLinkText] = useState<string>("Click here to verify your account"); // Add this line
+  const [linkText, setLinkText] = useState<string>("Click here to verify your account");
 
   // Campaign variable data
   const [campaignData, setCampaignData] = useState({
@@ -260,121 +261,163 @@ export default function Page() {
     }
   };
 
-  const sendAllEmails = async () => {
+  // Fix: Combined send campaign function
+  const handleSendCampaign = async () => {
     if (selectedEmployeeIds.length === 0) {
-      alert("Please select at least one employee first!");
+      alert("Please select at least one employee");
+      return;
+    }
+    if (!phishingPlatform) {
+      alert("Please select a phishing platform");
       return;
     }
 
-    if (!confirm(`Are you sure you want to send phishing emails to ${selectedEmployeeIds.length} employees?`)) {
+    if (!confirm(`Send phishing campaign to ${selectedEmployeeIds.length} employees?`)) {
       return;
     }
 
-    const campaignId = `campaign-${Date.now()}`;
-    let successCount = 0;
-    let failCount = 0;
-    const failedEmails: string[] = [];
+    try {
+      setSending(true);
 
-    setLoading(true);
+      // Generate unique campaign ID
+      const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    for (const employeeId of selectedEmployeeIds) {
-      const employee = employees.find((e) => e.id === employeeId);
-      if (!employee) continue;
+      // Prepare recipients
+      const recipients = selectedEmployees.map((emp) => ({
+        employeeId: emp.id,
+        email: emp.email,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+      }));
 
-      const employeeData = {
-        ...campaignData,
-        dueDate: campaignData.dueDate ? formatDateToDDMMYYYY(campaignData.dueDate) : "",
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-      };
-      
-      const rendered = renderPreview(subject, body, employeeData);
-      const bodyWithLink = replaceLinksInBody(rendered.body, employeeId, campaignId);
-      
-      // Wrap in proper HTML structure
-      const htmlBody = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          ${bodyWithLink}
-        </body>
-        </html>
-      `;
+      let successCount = 0;
+      let failCount = 0;
+      const failedEmails: string[] = [];
 
-      try {
-        const response = await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: employee.email,
-            subject: rendered.subject,
-            html: htmlBody,
-          }),
-        });
+      // Send emails one by one
+      for (const recipient of recipients) {
+        const employeeData = {
+          ...campaignData,
+          dueDate: campaignData.dueDate ? formatDateToDDMMYYYY(campaignData.dueDate) : "",
+          firstName: recipient.firstName,
+          lastName: recipient.lastName,
+          email: recipient.email,
+        };
 
-        const data = await response.json();
-        if (data.success) {
-          successCount++;
-          console.log(`✅ Sent to ${employee.email} - Message ID: ${data.messageId}`);
-        } else {
+        const rendered = renderPreview(subject, body, employeeData);
+        const bodyWithLink = replaceLinksInBody(rendered.body, recipient.employeeId, campaignId);
+
+        const htmlBody = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            ${bodyWithLink}
+          </body>
+          </html>
+        `;
+
+        try {
+          // Send email
+          const emailResponse = await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: recipient.email,
+              subject: rendered.subject,
+              html: htmlBody,
+            }),
+          });
+
+          const emailData = await emailResponse.json();
+
+          if (emailData.success) {
+            // Log "sent" action
+            await fetch("/api/phishing/log", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                campaignId,
+                employeeId: recipient.employeeId,
+                platform: phishingPlatform,
+                action: "sent",
+                timestamp: new Date().toISOString(),
+              }),
+            });
+
+            successCount++;
+            console.log(`✅ Sent to ${recipient.email}`);
+          } else {
+            failCount++;
+            failedEmails.push(recipient.email);
+            console.error(`❌ Failed to send to ${recipient.email}:`, emailData.error);
+          }
+
+          // Add delay to avoid rate limits
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } catch (error) {
+          console.error(`Failed to send to ${recipient.email}:`, error);
           failCount++;
-          failedEmails.push(employee.email);
-          console.error(`❌ Failed to send to ${employee.email}:`, data.error);
+          failedEmails.push(recipient.email);
         }
-
-        // Add 1 second delay to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error(`Failed to send to ${employee.email}:`, error);
-        failCount++;
-        failedEmails.push(employee.email);
       }
-    }
 
-    setLoading(false);
-    
-    let message = `✅ Campaign completed!\n\n✅ Success: ${successCount}\n❌ Failed: ${failCount}`;
-    if (failedEmails.length > 0) {
-      message += `\n\nFailed emails:\n${failedEmails.join('\n')}`;
+      let message = `✅ Campaign completed!\n\n✅ Success: ${successCount}\n❌ Failed: ${failCount}`;
+      if (failedEmails.length > 0) {
+        message += `\n\nFailed emails:\n${failedEmails.join("\n")}`;
+      }
+      alert(message);
+
+      // Reset form on success
+      if (successCount > 0) {
+        setSelectedEmployeeIds([]);
+      }
+    } catch (error: any) {
+      console.error("Send error:", error);
+      alert("❌ " + (error.message || "Failed to send campaign"));
+    } finally {
+      setSending(false);
     }
-    alert(message);
   };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const selectedEmployees = useMemo(() => {
+    return employees.filter((e) => selectedEmployeeIds.includes(e.id));
+  }, [employees, selectedEmployeeIds]);
 
-    const payload = {
+  // Add the missing handleSubmit function
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Save campaign draft to localStorage
+    const draft = {
+      id: `draft-${Date.now()}`,
       templateId,
       subject,
       body,
-      variables: detectedVars,
       campaignData,
       phishingPlatform,
-      targets: {
-        employeeIds: allSelectedEmployeeIds,
-        extraEmails: parseExtraEmails(extraEmails),
-      },
-      meta: {
-        userId: user.id,
-        createdAt: new Date().toISOString(),
-      },
+      linkText,
+      selectedEmployeeIds,
+      selectedDepartments,
+      extraEmails,
+      createdAt: new Date().toISOString(),
     };
 
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY_DRAFTS);
-      const drafts = raw ? (JSON.parse(raw) as any[]) : [];
-      drafts.unshift(payload);
-      window.localStorage.setItem(STORAGE_KEY_DRAFTS, JSON.stringify(drafts));
-    } catch {}
-
-    console.log("Campaign draft payload:", payload);
-    alert("Campaign draft saved (local). Check console for payload.");
-  }
+      const existingDrafts = localStorage.getItem(STORAGE_KEY_DRAFTS);
+      const drafts = existingDrafts ? JSON.parse(existingDrafts) : [];
+      drafts.push(draft);
+      localStorage.setItem(STORAGE_KEY_DRAFTS, JSON.stringify(drafts));
+      
+      alert("✅ Campaign draft saved successfully!");
+    } catch (error) {
+      console.error("Failed to save draft:", error);
+      alert("❌ Failed to save campaign draft");
+    }
+  };
 
   if (!user || loading) {
     return (
@@ -429,70 +472,35 @@ export default function Page() {
 
           {/* Phishing Platform Selection */}
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
-            <h3 className="font-semibold text-black mb-4">Select Phishing Template</h3>
-            <div className="space-y-3">
-              {/* Google Option */}
-              <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors">
-                <input
-                  type="radio"
-                  name="phishingPlatform"
-                  value="google"
-                  checked={phishingPlatform === "google"}
-                  onChange={(e) => setPhishingPlatform(e.target.value)}
-                  className="mt-1 mr-3"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <img src="/google.png" alt="Google" className="h-5" />
-                    <span className="font-semibold text-gray-900">Google Login</span>
-                  </div>
-                  <p className="text-sm text-black/70">
-                    Simulates a Google sign-in page
-                  </p>
-                </div>
-              </label>
-
-              {/* Microsoft Option */}
-              <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors">
-                <input
-                  type="radio"
-                  name="phishingPlatform"
-                  value="microsoft"
-                  checked={phishingPlatform === "microsoft"}
-                  onChange={(e) => setPhishingPlatform(e.target.value)}
-                  className="mt-1 mr-3"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <img src="/microsoft.png" alt="Microsoft" className="h-5" />
-                    <span className="font-semibold text-gray-900">Microsoft Login</span>
-                  </div>
-                  <p className="text-sm text-black/70">
-                    Simulates a Microsoft 365 sign-in page
-                  </p>
-                </div>
-              </label>
-
-              {/* PayPal Option */}
-              <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors">
-                <input
-                  type="radio"
-                  name="phishingPlatform"
-                  value="paypal"
-                  checked={phishingPlatform === "paypal"}
-                  onChange={(e) => setPhishingPlatform(e.target.value)}
-                  className="mt-1 mr-3"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <img src="/paypal.png" alt="PayPal" className="h-5" />
-                    <span className="font-semibold text-gray-900">PayPal Login</span>
-                  </div>
-                  <p className="text-sm text-black/70">
-                    Simulates a PayPal login page
-                  </p>
-                </div>
-              </label>
+            <div className="font-semibold text-black mb-3">🎯 Phishing Platform</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {["google", "microsoft", "paypal", "hsbc", "citibank"].map((platform) => (
+                <label
+                  key={platform}
+                  className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    phishingPlatform === platform
+                      ? "border-[#620089] bg-white shadow-md"
+                      : "border-gray-300 bg-white hover:border-[#620089]/50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="platform"
+                    value={platform}
+                    checked={phishingPlatform === platform}
+                    onChange={(e) => setPhishingPlatform(e.target.value)}
+                    className="sr-only"
+                  />
+                  <img
+                    src={`/${platform}.png`}
+                    alt={platform}
+                    className="h-6 w-auto"
+                  />
+                  <span className="text-sm font-medium text-black capitalize">
+                    {platform}
+                  </span>
+                </label>
+              ))}
             </div>
 
             {/* Custom Link Text Input */}
@@ -734,10 +742,7 @@ export default function Page() {
             ) : (
               <div className="max-h-96 overflow-y-auto space-y-2">
                 {employees.map((e) => (
-                  <div
-                    key={e.id}
-                    className="border border-gray-300 rounded-lg bg-white"
-                  >
+                  <div key={e.id} className="border border-gray-300 rounded-lg bg-white">
                     <label className="flex items-center p-3 cursor-pointer hover:bg-white/50">
                       <input
                         type="checkbox"
@@ -750,20 +755,11 @@ export default function Page() {
                           {e.firstName} {e.lastName}
                         </p>
                         <p className="text-sm text-black/60">{e.email}</p>
+                        {e.department && (
+                          <p className="text-xs text-black/50">{e.department}</p>
+                        )}
                       </div>
                     </label>
-                    {selectedEmployeeIds.includes(e.id) && (
-                      <div className="px-3 pb-3">
-                        <button
-                          type="button"
-                          onClick={() => sendEmailToEmployee(e.id, `${e.firstName} ${e.lastName}`, e.email)}
-                          className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
-                          disabled={loading}
-                        >
-                          {loading ? "Sending..." : `📧 Send to ${e.firstName}`}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -782,15 +778,17 @@ export default function Page() {
             />
           </div>
 
-          {/* Send All Emails Button */}
+          {/* Send Campaign Button - FIXED */}
           {selectedEmployeeIds.length > 0 && (
             <button
               type="button"
-              onClick={sendAllEmails}
-              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium"
-              disabled={loading}
+              onClick={handleSendCampaign}
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={sending}
             >
-              {loading ? "⏳ Sending..." : `📧 Send All Emails (${selectedEmployeeIds.length})`}
+              {sending
+                ? `⏳ Sending... (${selectedEmployeeIds.length})`
+                : `📧 Send Campaign (${selectedEmployeeIds.length})`}
             </button>
           )}
 
