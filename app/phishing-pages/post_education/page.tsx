@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 // import Link from "next/link"; // removed
 import { useEffect, useState } from "react";
+import PhishingQuiz from '@/app/components/PhishingQuiz';
 
 export default function AwarenessPage() {
   const searchParams = useSearchParams();
@@ -180,6 +181,17 @@ export default function AwarenessPage() {
             <span className="text-2xl animate-bounce">💡</span>
             Remember: Legitimate companies will NEVER ask for passwords via email!
           </p>
+        </div>
+
+        {/* Test Your Knowledge - Slide up */}
+        <div className={`mb-6 transform transition-all duration-500 delay-400 ${
+          showSections.remember ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+        }`}>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="animate-pulse">📝</span>
+            Test Your Knowledge
+          </h2>
+          <PhishingQuiz />
         </div>
 
         {/* Action Section - Slide up */}
