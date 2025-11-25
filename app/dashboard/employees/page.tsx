@@ -119,7 +119,12 @@ export default function EmployeesPage() {
       const text = await file.text();
       console.log("CSV content:", text);
 
-      const lines = text.split("\n").filter((line) => line.trim());
+      // Split by newline and filter empty lines
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      
       console.log("Total lines:", lines.length);
 
       if (lines.length < 2) {
@@ -130,21 +135,22 @@ export default function EmployeesPage() {
 
       // Skip header (index 0), start from index 1
       for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+        const line = lines[i];
 
-        // Split by comma, handle quoted fields
-        const parts = line.split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
-        console.log(`Line ${i}:`, parts);
+        // Parse CSV line - handle quoted fields properly
+        const parts = line
+          .split(",")
+          .map((s) => s.trim().replace(/^"|"$/g, ""))
+          .map((s) => s.trim());
 
         const [firstName, lastName, email, department] = parts;
 
         if (firstName && lastName && email) {
           employees.push({
-            firstName,
-            lastName,
-            email,
-            department: department || "",
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            email: email.trim().toLowerCase(),
+            department: department ? department.trim() : "",
           });
         } else {
           console.warn(`Skipping invalid line ${i}:`, parts);

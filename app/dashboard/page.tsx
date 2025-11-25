@@ -34,7 +34,7 @@ export default function Dashboard() {
     if (!user) return null;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 flex flex-col h-full">
             <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-8">
                 <h1 className="text-4xl font-bold text-black mb-2">
                     Welcome to MySimFisher, {user.username}! 👋
@@ -45,12 +45,12 @@ export default function Dashboard() {
             </div>
 
             {/* Campaign Generation Steps */}
-            <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-8">
+            <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-8 flex-1 flex flex-col">
                 <h2 className="text-2xl font-semibold text-black mb-6">
                     Create a Campaign in 3 Simple Steps
                 </h2>
 
-                <div className="space-y-4">
+                <div className="space-y-10 flex flex-col justify-center flex-1">
                     <div className="bg-white rounded-xl p-6 flex items-start gap-4 hover:shadow-md transition-shadow">
                         <div className="flex-shrink-0 w-12 h-12 bg-[#620089] text-white rounded-full flex items-center justify-center font-bold text-xl">
                             1
@@ -109,29 +109,6 @@ export default function Dashboard() {
                                 View Analytics →
                             </Link>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-8">
-                <h2 className="text-2xl font-semibold text-black mb-6">Quick Stats</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-6 rounded-xl text-center">
-                        <p className="text-4xl font-bold text-[#620089] mb-2">0</p>
-                        <p className="text-sm text-gray-600">Active Campaigns</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl text-center">
-                        {loading ? (
-                            <p className="text-4xl font-bold text-[#620089] mb-2">...</p>
-                        ) : (
-                            <p className="text-4xl font-bold text-[#620089] mb-2">{employeeCount}</p>
-                        )}
-                        <p className="text-sm text-gray-600">Total Employees</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl text-center">
-                        <p className="text-4xl font-bold text-[#620089] mb-2">0%</p>
-                        <p className="text-sm text-gray-600">Success Rate</p>
                     </div>
                 </div>
             </div>

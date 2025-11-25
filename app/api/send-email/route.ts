@@ -10,15 +10,15 @@ const mg = mailgun.client({
 
 export async function POST(request: NextRequest) {
   try {
-    const { to, subject, html, from } = await request.json();
+    const { to, subject, html, companyName } = await request.json();
 
     console.log("📧 Attempting to send email to:", to);
     console.log("📧 Subject:", subject);
+    console.log("📧 From:", companyName);
     console.log("📧 Using domain:", process.env.MAILGUN_DOMAIN);
-    console.log("📧 API Key exists:", !!process.env.MAILGUN_API_KEY);
 
     const messageData = {
-      from: from || `Security Team <postmaster@${process.env.MAILGUN_DOMAIN}>`,
+      from: `${companyName} <postmaster@${process.env.MAILGUN_DOMAIN}>`,
       to: [to],
       subject: subject,
       html: html,

@@ -12,10 +12,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // TODO: Add your actual email sending logic here
-    // Example: await sendPhishingEmails(recipients, campaignId, platform);
-
-    // Log one "sent" action per recipient
     const now = new Date();
     await prisma.$transaction(
       recipients.map((r: { employeeId: string; email: string }) =>

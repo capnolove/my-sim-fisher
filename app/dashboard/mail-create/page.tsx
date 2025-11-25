@@ -105,7 +105,7 @@ export default function Page() {
       setSubject(selectedTemplate.subject || "");
       setBody(selectedTemplate.body || "");
     }
-  }, [selectedTemplate?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedTemplate?.id]); 
 
   const detectedVars = useMemo(() => {
     const set = new Set<string>([...extractVariables(subject), ...extractVariables(body)]);
@@ -329,6 +329,7 @@ export default function Page() {
               to: recipient.email,
               subject: rendered.subject,
               html: htmlBody,
+              companyName: campaignData.companyName,
             }),
           });
 
@@ -683,30 +684,7 @@ export default function Page() {
         {/* Right Column - Target Selection */}
         <aside className="space-y-6">
           {/* Department Filter */}
-          {departments.length > 0 && (
-            <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
-              <div className="font-semibold text-black mb-3">Target by Department</div>
-              <div className="flex flex-wrap gap-2">
-                {departments.map((dep) => {
-                  const active = selectedDepartments.includes(dep);
-                  return (
-                    <button
-                      key={dep}
-                      type="button"
-                      onClick={() => toggleDepartment(dep)}
-                      className={`px-3 py-1.5 rounded-lg border transition-colors ${
-                        active
-                          ? "bg-[#620089] text-white border-[#620089]"
-                          : "bg-white text-black border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
-                      {dep}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          
 
           {/* Employee Selection */}
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
@@ -792,33 +770,6 @@ export default function Page() {
             </button>
           )}
 
-          {/* Summary & Submit */}
-          <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
-            <div className="font-semibold text-black mb-3">📊 Summary</div>
-            <div className="space-y-1 text-sm text-black">
-              <div>
-                Template: <strong>{selectedTemplate?.name ?? "-"}</strong>
-              </div>
-              <div>
-                Platform: <strong>{phishingPlatform}</strong>
-              </div>
-              <div>
-                Selected employees: <strong>{allSelectedEmployeeIds.length}</strong>
-              </div>
-              <div>
-                Extra emails: <strong>{parseExtraEmails(extraEmails).length}</strong>
-              </div>
-              <div className="pt-2 border-t border-black/10">
-                Total recipients: <strong>{allSelectedEmployeeIds.length + parseExtraEmails(extraEmails).length}</strong>
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="mt-4 w-full bg-[#620089] text-white px-4 py-2.5 rounded-lg hover:bg-[#4a0068] transition-colors font-semibold"
-            >
-              💾 Save Campaign Draft
-            </button>
-          </div>
         </aside>
       </form>
     </div>
