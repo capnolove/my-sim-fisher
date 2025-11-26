@@ -22,20 +22,27 @@ type Employee = {
 const STORAGE_KEY_TEMPLATES = "msf.templates.v1";
 const STORAGE_KEY_DRAFTS = "msf.campaignDrafts.v1";
 
+// Remove all event handlers (onclick, onerror, onload, etc)
+function stripDangerousAttributes(html: string): string {
+  return html
+    .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove on* attributes
+    .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '') // Remove on* without quotes
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/data:text\/html/gi, ''); // Remove data: URIs
+}
+
 export default function Page() {
   const [user, setUser] = useState<any>(null);
   const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false); // Add this state
+  const [sending, setSending] = useState(false);
   const router = useRouter();
 
-  // Add phishing platform state
   const [phishingPlatform, setPhishingPlatform] = useState<string>("google");
-  const [generatedLinks, setGeneratedLinks] = useState<any[]>([]);
   const [linkText, setLinkText] = useState<string>("Click here to verify your account");
 
-  // Campaign variable data
+  // ✅ EDITABLE CAMPAIGN VARIABLES
   const [campaignData, setCampaignData] = useState({
     companyName: "MySimFisher",
     dueDate: "",
@@ -58,7 +65,6 @@ export default function Page() {
     fetchEmployees(parsedUser.id);
   }, [router]);
 
-  // Fetch employees from API
   const fetchEmployees = async (userId: string) => {
     try {
       const response = await fetch(`/api/employees?userId=${userId}`);
@@ -105,7 +111,7 @@ export default function Page() {
       setSubject(selectedTemplate.subject || "");
       setBody(selectedTemplate.body || "");
     }
-  }, [selectedTemplate?.id]); 
+  }, [selectedTemplate?.id]);
 
   const detectedVars = useMemo(() => {
     const set = new Set<string>([...extractVariables(subject), ...extractVariables(body)]);
@@ -144,11 +150,6 @@ export default function Page() {
     setSelectedEmployeeIds([]);
   }
 
-  function onSelectEmployees(e: React.ChangeEvent<HTMLSelectElement>) {
-    const values = Array.from(e.target.selectedOptions).map((o) => o.value);
-    setSelectedEmployeeIds(values);
-  }
-
   const deptEmployeeIds = useMemo(() => {
     if (!selectedDepartments.length) return [];
     return employees
@@ -161,27 +162,28 @@ export default function Page() {
     return Array.from(set);
   }, [selectedEmployeeIds, deptEmployeeIds]);
 
-  function parseExtraEmails(input: string): string[] {
-    return input
-      .split(/[\n,;, ]/g)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-  }
-
-  // Function to replace {{LINK}} with actual phishing links
+  // ✅ FUNCTION TO REPLACE VARIABLES AND SANITIZE
   function replaceLinksInBody(bodyText: string, employeeId: string, campaignId: string): string {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const link = `${baseUrl}/phishing-pages/fake-login-pages/${phishingPlatform}?c=${campaignId}&e=${employeeId}`;
-    
-    // Create proper HTML link with the custom link text
-    const linkHtml = `<a href="${link}" style="color: #0066cc; text-decoration: underline;">${linkText}</a>`;
-    
+
+    // Escape the link text to prevent XSS
+    const escapedLinkText = linkText
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+    // Create proper HTML link
+    const linkHtml = `<a href="${link}" style="color: #0066cc; text-decoration: underline;">${escapedLinkText}</a>`;
+
     // Replace {{LINK}} with the clickable link
     let result = bodyText.replace(/\{\{LINK\}\}/g, linkHtml);
-    
+
     // Convert line breaks to HTML <br> tags
     result = result.replace(/\n/g, '<br>');
-    
+
     return result;
   }
 
@@ -194,12 +196,13 @@ export default function Page() {
       lastName: "Nguyen",
       email: "alex.nguyen@example.com",
     };
-    
+
     const rendered = renderPreview(subject, body, previewData);
-    
-    // Replace {{LINK}} with clickable link in preview
-    const bodyWithLink = replaceLinksInBody(rendered.body, "preview-employee", `campaign-${Date.now()}`);
-    
+    let bodyWithLink = replaceLinksInBody(rendered.body, "preview-employee", `campaign-${Date.now()}`);
+
+    // ✅ STRIP DANGEROUS ATTRIBUTES FROM HTML
+    bodyWithLink = stripDangerousAttributes(bodyWithLink);
+
     return {
       subject: rendered.subject,
       body: bodyWithLink,
@@ -208,7 +211,7 @@ export default function Page() {
 
   const sendEmailToEmployee = async (employeeId: string, employeeName: string, employeeEmail: string) => {
     const campaignId = `campaign-${Date.now()}`;
-    
+
     const employeeData = {
       ...campaignData,
       dueDate: campaignData.dueDate ? formatDateToDDMMYYYY(campaignData.dueDate) : "",
@@ -216,11 +219,13 @@ export default function Page() {
       lastName: employeeName.split(' ').slice(1).join(' '),
       email: employeeEmail,
     };
-    
+
     const rendered = renderPreview(subject, body, employeeData);
-    const bodyWithLink = replaceLinksInBody(rendered.body, employeeId, campaignId);
-    
-    // Wrap in proper HTML structure
+    let bodyWithLink = replaceLinksInBody(rendered.body, employeeId, campaignId);
+
+    // ✅ STRIP DANGEROUS ATTRIBUTES
+    bodyWithLink = stripDangerousAttributes(bodyWithLink);
+
     const htmlBody = `
       <!DOCTYPE html>
       <html>
@@ -251,7 +256,7 @@ export default function Page() {
       if (data.success) {
         alert(`✅ Email sent successfully to ${employeeName}!\n\nMessage ID: ${data.messageId}`);
       } else {
-        alert(`❌ Failed to send email to ${employeeName}\n\nError: ${data.error}\n${data.details || ''}`);
+        alert(`❌ Failed to send email to ${employeeName}\n\nError: ${data.error}`);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -261,7 +266,6 @@ export default function Page() {
     }
   };
 
-  // Fix: Combined send campaign function
   const handleSendCampaign = async () => {
     if (selectedEmployeeIds.length === 0) {
       alert("Please select at least one employee");
@@ -278,11 +282,8 @@ export default function Page() {
 
     try {
       setSending(true);
-
-      // Generate unique campaign ID
       const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // Prepare recipients
       const recipients = selectedEmployees.map((emp) => ({
         employeeId: emp.id,
         email: emp.email,
@@ -294,7 +295,6 @@ export default function Page() {
       let failCount = 0;
       const failedEmails: string[] = [];
 
-      // Send emails one by one
       for (const recipient of recipients) {
         const employeeData = {
           ...campaignData,
@@ -305,7 +305,9 @@ export default function Page() {
         };
 
         const rendered = renderPreview(subject, body, employeeData);
-        const bodyWithLink = replaceLinksInBody(rendered.body, recipient.employeeId, campaignId);
+        let bodyWithLink = replaceLinksInBody(rendered.body, recipient.employeeId, campaignId);
+
+        bodyWithLink = stripDangerousAttributes(bodyWithLink);
 
         const htmlBody = `
           <!DOCTYPE html>
@@ -321,7 +323,6 @@ export default function Page() {
         `;
 
         try {
-          // Send email
           const emailResponse = await fetch("/api/send-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -336,7 +337,6 @@ export default function Page() {
           const emailData = await emailResponse.json();
 
           if (emailData.success) {
-            // Log "sent" action
             await fetch("/api/phishing/log", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -372,7 +372,6 @@ export default function Page() {
       }
       alert(message);
 
-      // Reset form on success
       if (successCount > 0) {
         setSelectedEmployeeIds([]);
       }
@@ -388,11 +387,9 @@ export default function Page() {
     return employees.filter((e) => selectedEmployeeIds.includes(e.id));
   }, [employees, selectedEmployeeIds]);
 
-  // Add the missing handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Save campaign draft to localStorage
+
     const draft = {
       id: `draft-${Date.now()}`,
       templateId,
@@ -412,7 +409,7 @@ export default function Page() {
       const drafts = existingDrafts ? JSON.parse(existingDrafts) : [];
       drafts.push(draft);
       localStorage.setItem(STORAGE_KEY_DRAFTS, JSON.stringify(drafts));
-      
+
       alert("✅ Campaign draft saved successfully!");
     } catch (error) {
       console.error("Failed to save draft:", error);
@@ -439,7 +436,7 @@ export default function Page() {
       </div>
 
       <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1fr_400px]">
-        {/* Left Column - Template & Content */}
+        {/* Left Column */}
         <div className="space-y-6">
           {/* Template Selection */}
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
@@ -576,11 +573,11 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Campaign Variables */}
+          {/* Campaign Variables - ✅ NOW FULLY EDITABLE */}
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
             <div className="font-semibold text-black mb-3">📝 Campaign Variables</div>
             <div className="text-xs text-black/60 mb-4 italic">
-              Fill in these values to replace variables in your template
+              Edit these values to customize your template with variable placeholders like {'{{companyName}}'}, {'{{firstName}}'}, etc.
             </div>
             <div className="space-y-3">
               <div>
@@ -590,36 +587,13 @@ export default function Page() {
                 <input
                   type="text"
                   value={campaignData.companyName}
-                  onChange={(e) => setCampaignData({ ...campaignData, companyName: e.target.value })}
+                  onChange={(e) =>
+                    setCampaignData({ ...campaignData, companyName: e.target.value })
+                  }
                   placeholder="MySimFisher"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
                 />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-semibold text-black mb-1">
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  value={campaignData.dueDate}
-                  onChange={(e) => setCampaignData({ ...campaignData, dueDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-black mb-1">
-                  Action Link (will be replaced with phishing link)
-                </label>
-                <input
-                  type="text"
-                  value={campaignData.actionLink}
-                  onChange={(e) => setCampaignData({ ...campaignData, actionLink: e.target.value })}
-                  placeholder="Use {{LINK}} in your email body"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
-                  disabled
-                />
+                <p className="text-xs text-gray-600 mt-1">Use {'{{companyName}}'} in your template</p>
               </div>
 
               <div>
@@ -629,10 +603,28 @@ export default function Page() {
                 <input
                   type="text"
                   value={campaignData.policyName}
-                  onChange={(e) => setCampaignData({ ...campaignData, policyName: e.target.value })}
+                  onChange={(e) =>
+                    setCampaignData({ ...campaignData, policyName: e.target.value })
+                  }
                   placeholder="e.g., Security Policy Update"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
                 />
+                <p className="text-xs text-gray-600 mt-1">Use {'{{policyName}}'} in your template</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-black mb-1">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  value={campaignData.dueDate}
+                  onChange={(e) =>
+                    setCampaignData({ ...campaignData, dueDate: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
+                />
+                <p className="text-xs text-gray-600 mt-1">Use {'{{dueDate}}'} in your template</p>
               </div>
 
               <div>
@@ -642,9 +634,12 @@ export default function Page() {
                 <input
                   type="date"
                   value={campaignData.windowStart}
-                  onChange={(e) => setCampaignData({ ...campaignData, windowStart: e.target.value })}
+                  onChange={(e) =>
+                    setCampaignData({ ...campaignData, windowStart: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
                 />
+                <p className="text-xs text-gray-600 mt-1">Use {'{{windowStart}}'} in your template</p>
               </div>
 
               <div>
@@ -654,14 +649,33 @@ export default function Page() {
                 <input
                   type="date"
                   value={campaignData.windowEnd}
-                  onChange={(e) => setCampaignData({ ...campaignData, windowEnd: e.target.value })}
+                  onChange={(e) =>
+                    setCampaignData({ ...campaignData, windowEnd: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
                 />
+                <p className="text-xs text-gray-600 mt-1">Use {'{{windowEnd}}'} in your template</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-black mb-1">
+                  Status Link
+                </label>
+                <input
+                  type="text"
+                  value={campaignData.statusLink}
+                  onChange={(e) =>
+                    setCampaignData({ ...campaignData, statusLink: e.target.value })
+                  }
+                  placeholder="https://example.com/status"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#620089]"
+                />
+                <p className="text-xs text-gray-600 mt-1">Use {'{{statusLink}}'} in your template</p>
               </div>
             </div>
           </div>
 
-          {/* Live Preview */}
+          {/* Live Preview - ✅ SANITIZED */}
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
             <div className="font-semibold text-black mb-3">📄 Live Preview</div>
             <div className="text-xs text-black/60 mb-3 italic">
@@ -673,7 +687,7 @@ export default function Page() {
             </div>
             <div>
               <strong className="text-black">Body:</strong>
-              <div 
+              <div
                 className="mt-1 whitespace-pre-wrap bg-white border border-gray-200 rounded-lg p-4 text-sm text-black"
                 dangerouslySetInnerHTML={{ __html: preview.body }}
               />
@@ -683,9 +697,6 @@ export default function Page() {
 
         {/* Right Column - Target Selection */}
         <aside className="space-y-6">
-          {/* Department Filter */}
-          
-
           {/* Employee Selection */}
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
             <div className="flex justify-between items-center mb-3">
@@ -756,7 +767,7 @@ export default function Page() {
             />
           </div>
 
-          {/* Send Campaign Button - FIXED */}
+          {/* Send Campaign Button */}
           {selectedEmployeeIds.length > 0 && (
             <button
               type="button"
@@ -769,7 +780,6 @@ export default function Page() {
                 : `📧 Send Campaign (${selectedEmployeeIds.length})`}
             </button>
           )}
-
         </aside>
       </form>
     </div>

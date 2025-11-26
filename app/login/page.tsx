@@ -34,15 +34,25 @@ export default function Login() {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || "Login failed");
+                // ✅ SHOW RATE LIMIT ERROR
+                if (response.status === 429) {
+                    setError(`🔒 Account locked. Try again in ${data.remainingTime} seconds.`);
+                } else {
+                    // Show attempts remaining
+                    setError(
+                        `${data.error}${
+                            data.attemptsRemaining !== undefined
+                                ? ` (${data.attemptsRemaining} attempts remaining)`
+                                : ""
+                        }`
+                    );
+                }
+                return;
             }
 
-            // Store user data in localStorage
-            if (data.user) {
-                localStorage.setItem("user", JSON.stringify(data.user));
-            }
-
-            // Redirect to dashboard
+            // Success
+            localStorage.setItem("token", data.user.id);
+            localStorage.setItem("user", JSON.stringify(data.user));
             router.push("/dashboard");
         } catch (err: any) {
             setError(err.message);
