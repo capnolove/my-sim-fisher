@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     console.log("📧 Using domain:", process.env.MAILGUN_DOMAIN);
 
     const messageData = {
-      from: `${companyName} <postmaster@${process.env.MAILGUN_DOMAIN}>`,
+      from: `${companyName} <noreply@${process.env.MAILGUN_DOMAIN}>`,
       to: [to],
       subject: subject,
       html: html,

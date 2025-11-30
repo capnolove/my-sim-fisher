@@ -18,7 +18,7 @@ type PhishingLog = {
   campaignId: string;
   employeeId: string;
   platform: string;
-  action: "sent" | "clicked" | "submitted"; // changed: include "sent"
+  action: "sent" | "clicked" | "submitted"; 
   timestamp: string;
   data?: any;
   employeeName?: string;
@@ -34,7 +34,7 @@ type Employee = {
   department?: string;
 };
 
-// Helper: normalize one employee (supports dept/team keys)
+
 function normalizeEmployee(e: any): Employee {
   return {
     id: String(e.id),
@@ -45,14 +45,14 @@ function normalizeEmployee(e: any): Employee {
   };
 }
 
-// Helper: normalize employees API JSON (supports {employees}, {data}, [] shapes)
+
 function normalizeEmployeesJson(json: any): Employee[] {
   const arr = json?.employees ?? json?.data ?? json;
   if (!Array.isArray(arr)) return [];
   return arr.map(normalizeEmployee);
 }
 
-// Merge API employees with logs (fill missing or missing departments from logs)
+
 function mergeEmployeesWithLogs(apiEmployees: Employee[], logs: PhishingLog[]): Employee[] {
   const byId = new Map<string, Employee>();
   apiEmployees.forEach((e) => byId.set(String(e.id), { ...e, department: e.department || "Unknown" }));
@@ -74,7 +74,7 @@ function mergeEmployeesWithLogs(apiEmployees: Employee[], logs: PhishingLog[]): 
   return Array.from(byId.values());
 }
 
-// Pair key helper (per employee per campaign)
+
 function pairKey(empId: string, campId: string) {
   return `${empId}::${campId}`;
 }
@@ -89,7 +89,7 @@ export default function Page() {
     endDate: ''
   });
   const sp = useSearchParams();
-  const userId = sp.get("userId") || ""; // pass ?userId=... in the URL
+  const userId = sp.get("userId") || ""; 
 
   useEffect(() => {
     let cancelled = false;
@@ -119,7 +119,7 @@ export default function Page() {
             }
           }
         } catch {
-          // ignore
+          // Ignore employee fetch errors
         }
 
         // If empty, seed from logs
@@ -166,7 +166,7 @@ export default function Page() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [employees]);
 
-  // Compute per-department rates using "sent" as denominator
+  
   const chartDataRates = useMemo(() => {
     // Lookup department per employeeId
     const deptOf = (empId: string) => {
@@ -174,7 +174,7 @@ export default function Page() {
       return (e?.department || "Unknown") as string;
     };
 
-    // Sets of unique pairs per department
+ 
     const sentByDept = new Map<string, Set<string>>();
     const clickedByDept = new Map<string, Set<string>>();
     const submittedByDept = new Map<string, Set<string>>();

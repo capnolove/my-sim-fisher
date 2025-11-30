@@ -25,10 +25,10 @@ const STORAGE_KEY_DRAFTS = "msf.campaignDrafts.v1";
 // Remove all event handlers (onclick, onerror, onload, etc)
 function stripDangerousAttributes(html: string): string {
   return html
-    .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove on* attributes
-    .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '') // Remove on* without quotes
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/data:text\/html/gi, ''); // Remove data: URIs
+    .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '') 
+    .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '') 
+    .replace(/javascript:/gi, '') 
+    .replace(/data:text\/html/gi, ''); 
 }
 
 export default function Page() {
@@ -42,7 +42,7 @@ export default function Page() {
   const [phishingPlatform, setPhishingPlatform] = useState<string>("google");
   const [linkText, setLinkText] = useState<string>("Click here to verify your account");
 
-  // ✅ EDITABLE CAMPAIGN VARIABLES
+  //  EDITABLE CAMPAIGN VARIABLES
   const [campaignData, setCampaignData] = useState({
     companyName: "MySimFisher",
     dueDate: "",
@@ -162,7 +162,7 @@ export default function Page() {
     return Array.from(set);
   }, [selectedEmployeeIds, deptEmployeeIds]);
 
-  // ✅ FUNCTION TO REPLACE VARIABLES AND SANITIZE
+  //  FUNCTION TO REPLACE VARIABLES AND SANITIZE
   function replaceLinksInBody(bodyText: string, employeeId: string, campaignId: string): string {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const link = `${baseUrl}/phishing-pages/fake-login-pages/${phishingPlatform}?c=${campaignId}&e=${employeeId}`;
@@ -200,7 +200,7 @@ export default function Page() {
     const rendered = renderPreview(subject, body, previewData);
     let bodyWithLink = replaceLinksInBody(rendered.body, "preview-employee", `campaign-${Date.now()}`);
 
-    // ✅ STRIP DANGEROUS ATTRIBUTES FROM HTML
+    // STRIP DANGEROUS ATTRIBUTES FROM HTML
     bodyWithLink = stripDangerousAttributes(bodyWithLink);
 
     return {
@@ -223,7 +223,7 @@ export default function Page() {
     const rendered = renderPreview(subject, body, employeeData);
     let bodyWithLink = replaceLinksInBody(rendered.body, employeeId, campaignId);
 
-    // ✅ STRIP DANGEROUS ATTRIBUTES
+    //  STRIP DANGEROUS ATTRIBUTES
     bodyWithLink = stripDangerousAttributes(bodyWithLink);
 
     const htmlBody = `
@@ -573,7 +573,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Campaign Variables - ✅ NOW FULLY EDITABLE */}
+          
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
             <div className="font-semibold text-black mb-3">📝 Campaign Variables</div>
             <div className="text-xs text-black/60 mb-4 italic">
@@ -675,7 +675,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Live Preview - ✅ SANITIZED */}
+          
           <div className="bg-[#D8AAEA] rounded-2xl shadow-lg p-6">
             <div className="font-semibold text-black mb-3">📄 Live Preview</div>
             <div className="text-xs text-black/60 mb-3 italic">

@@ -34,7 +34,7 @@ export default function Login() {
             const data = await response.json();
 
             if (!response.ok) {
-                // ✅ SHOW RATE LIMIT ERROR
+                //  SHOW RATE LIMIT ERROR
                 if (response.status === 429) {
                     setError(`🔒 Account locked. Try again in ${data.remainingTime} seconds.`);
                 } else {

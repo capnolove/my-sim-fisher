@@ -9,7 +9,7 @@ interface Employee {
   lastName: string;
   email: string;
   department?: string;
-  createdAt: string; // Change from Date to string since API returns string
+  createdAt: string; 
 }
 
 export default function EmployeesPage() {

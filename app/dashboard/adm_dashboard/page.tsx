@@ -13,8 +13,8 @@ type PhishingLog = {
   timestamp: string;
   data?: any;
   createdAt: string;
-  employeeName?: string;   // added
-  employeeEmail?: string;  // added
+  employeeName?: string;   
+  employeeEmail?: string;  
 };
 
 type Employee = {
@@ -95,7 +95,7 @@ export default function LogsPage() {
   // Calculate statistics
   const stats = {
     totalClicks: logs.filter((l) => l.action === "clicked").length,
-    totalSubmissions: logs.filter((l) => l.action === "submitted").length, // only count real submissions
+    totalSubmissions: logs.filter((l) => l.action === "submitted").length, 
     uniqueEmployees: new Set(logs.map((l) => l.employeeId)).size,
     campaignCount: campaigns.length,
   };

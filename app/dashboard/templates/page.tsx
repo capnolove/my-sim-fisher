@@ -6,7 +6,7 @@ import {
   defaultTemplates,
   extractVariables,
   renderPreview,
-  formatDateToDDMMYYYY, // Add this import
+  formatDateToDDMMYYYY, 
 } from "@/lib/templates";
 
 type EditorState = Omit<CampaignTemplate, "id" | "createdAt" | "updatedAt"> & {
@@ -101,7 +101,7 @@ export default function TemplatesPage() {
       lastName: "Nguyen",
       email: "alex.nguyen@example.com",
       companyName: "MySimFisher",
-      dueDate: formatDateToDDMMYYYY("2025-11-15"), // Now formatted as DD/MM/YYYY
+      dueDate: formatDateToDDMMYYYY("2025-11-15"), 
       actionLink: "https://example.com/action",
       policyName: "Acceptable Use Policy",
       windowStart: "Sat 10:00",
@@ -139,7 +139,7 @@ export default function TemplatesPage() {
     }
 
     const now = new Date().toISOString();
-    const newId = form.id || generateUUID(); // Changed from crypto.randomUUID()
+    const newId = form.id || generateUUID(); 
 
     const data: CampaignTemplate = {
       id: newId,

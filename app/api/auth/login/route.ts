@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     const emailLower = email.toLowerCase().trim();
     const identifier = `${emailLower}:${clientIp}`; // Combine email + IP for better accuracy
 
-    // 3. ✅ CHECK IF ACCOUNT IS LOCKED
+    // 3. CHECK IF ACCOUNT IS LOCKED
     if (isLockedOut(identifier)) {
       const remainingTime = getRemainingLockoutTime(identifier);
       return NextResponse.json(
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 7. ✅ CLEAR FAILED ATTEMPTS ON SUCCESSFUL LOGIN
+    // 7. CLEAR FAILED ATTEMPTS ON SUCCESSFUL LOGIN
     clearFailedAttempts(identifier);
 
     // 8. Generate JWT token

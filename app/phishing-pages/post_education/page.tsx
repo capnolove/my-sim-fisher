@@ -27,10 +27,10 @@ export default function AwarenessPage() {
   };
 
   useEffect(() => {
-    // Trigger initial animation
+    
     setIsVisible(true);
 
-    // Cascade section animations
+   
     const timers = [
       setTimeout(() => setShowSections(s => ({ ...s, header: true })), 100),
       setTimeout(() => setShowSections(s => ({ ...s, whatHappened: true })), 400),
